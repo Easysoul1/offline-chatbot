@@ -2,13 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Message } from '../../hooks/useModel';
 
 interface ChatInterfaceProps {
-       onSendMessage: (history: Message[], update: (text: string) => void) => Promise<void>;
+       messages: Message[];
+       onSendMessage: (text: string) => Promise<void>;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSendMessage }) => {
-       const [messages, setMessages] = useState<Message[]>([
-              { role: 'system', content: 'You are a helpful coding assistant. You answer programming questions accurately.' }
-       ]);
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage }) => {
        const [input, setInput] = useState('');
        const [isGenerating, setIsGenerating] = useState(false);
        const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,27 +21,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSendMessage }) =
               e.preventDefault();
               if (!input.trim() || isGenerating) return;
 
-              const userMessage: Message = { role: 'user', content: input };
-              const newHistory = [...messages, userMessage];
-
-              setMessages(newHistory);
+              const text = input;
               setInput('');
               setIsGenerating(true);
 
-              // Add placeholder for assistant
-              setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
               try {
-                     await onSendMessage(newHistory, (currentText) => {
-                            setMessages(prev => {
-                                   const updated = [...prev];
-                                   updated[updated.length - 1] = { role: 'assistant', content: currentText };
-                                   return updated;
-                            });
-                     });
+                     await onSendMessage(text);
               } catch (err) {
                      console.error(err);
-                     setMessages(prev => [...prev, { role: 'system', content: 'Error generating response.' }]);
               } finally {
                      setIsGenerating(false);
               }
@@ -65,6 +50,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onSendMessage }) =
                                           {msg.content}
                                    </div>
                             ))}
+                            {isGenerating && (
+                                   <div style={{
+                                          alignSelf: 'flex-start',
+                                          maxWidth: '80%',
+                                          background: 'var(--color-surface)',
+                                          color: 'var(--color-text-primary)',
+                                          padding: '12px 16px',
+                                          borderRadius: '12px',
+                                          opacity: 0.7
+                                   }}>
+                                          Typing...
+                                   </div>
+                            )}
                             <div ref={messagesEndRef} />
                      </div>
 

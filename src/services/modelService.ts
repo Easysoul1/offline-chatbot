@@ -30,6 +30,20 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
               size: "4.6GB",
               description: "Specialized for coding tasks. Requires 8GB+ RAM.",
               family: "llama3"
+       },
+       {
+              id: "gemma-2b-it-q4f16_1-MLC",
+              name: "Gemma 2B",
+              size: "1.4GB",
+              description: "Google's lightweight open model. Very fast.",
+              family: "gemma"
+       },
+       {
+              id: "RedPajama-INCITE-Chat-3B-v1-q4f16_1-MLC",
+              name: "RedPajama 3B",
+              size: "1.8GB",
+              description: "Open source community model. Low memory usage.",
+              family: "redpajama"
        }
 ];
 

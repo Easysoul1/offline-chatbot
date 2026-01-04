@@ -5,10 +5,12 @@ import { CodeEditor } from './components/Editor/CodeEditor';
 import { MainLayout } from './components/Layout/MainLayout';
 import { AppProvider, useAppContext } from './services/contextService';
 import type { Message } from './hooks/useModel';
+import { useChat } from './hooks/useChat';
 
 function AppContent() {
   const { modelStats, availableModels, loadModel, generateResponse, currentModel } = useModel();
   const { activeCode, updateCode } = useAppContext();
+  const { messages, addMessage, updateLastMessage } = useChat();
 
   // Inject current code into context for the AI
   const handleSendMessage = async (history: Message[], update: (text: string) => void) => {
@@ -27,6 +29,24 @@ function AppContent() {
     ];
 
     await generateResponse(contextEnhancedHistory, update);
+  };
+
+  // Bridge between ChatInterface and useChat/useModel
+  const onSend = async (userMsg: string) => {
+    const newUserMsg: Message = { role: 'user', content: userMsg };
+    const newHistory = [...messages, newUserMsg];
+
+    addMessage(newUserMsg);
+    // Add placeholder
+    addMessage({ role: 'assistant', content: '' });
+
+    // We need to pass the history INCLUDING the new user message to the model
+    // but excluding the empty placeholder we just added to UI state (which is in `messages` next render)
+    // Actually `newHistory` is what we want.
+
+    await handleSendMessage(newHistory, (text) => {
+      updateLastMessage(text);
+    });
   };
 
   return (
@@ -72,7 +92,8 @@ function AppContent() {
               </header>
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <ChatInterface
-                  onSendMessage={handleSendMessage}
+                  messages={messages}
+                  onSendMessage={onSend}
                 />
               </div>
             </div>
