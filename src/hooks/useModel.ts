@@ -38,7 +38,12 @@ export function useModel() {
               if (!selectedModel) return;
 
               setCurrentModel(selectedModel);
-              setModelStats(prev => ({ ...prev, loading: true, error: null }));
+              setModelStats(prev => ({
+                     ...prev,
+                     loading: true,
+                     error: null,
+                     progress: { progress: 0, text: "Booting AI Engine (this may take a minute)...", timeElapsed: 0 }
+              }));
 
               try {
                      await modelService.initialize(modelId, (report: InitProgressReport) => {

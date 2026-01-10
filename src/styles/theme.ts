@@ -4,6 +4,10 @@ export const theme = {
     surface: '#151B2B',
     primary: '#00D9A3',
     secondary: '#FF6B9D',
+    accent: {
+      primary: '#6366f1',
+      secondary: '#8b5cf6',
+    },
     text: {
       primary: '#E8EAED',
       secondary: '#9CA3AF',
@@ -26,6 +30,10 @@ export const theme = {
     sm: 4,
     md: 6,
     lg: 8,
+  },
+  fonts: {
+    body: "'Inter', sans-serif",
+    mono: "'JetBrains Mono', 'Fira Code', monospace",
   },
   typography: {
     fontFamily: {

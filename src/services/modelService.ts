@@ -11,39 +11,39 @@ export interface ModelConfig {
 // Available models optimized for different hardware constraints
 export const AVAILABLE_MODELS: ModelConfig[] = [
        {
-              id: "Phi-3-mini-4k-instruct-q4f16_1-MLC", // ~2.3GB, good for 4GB RAM
-              name: "Phi-3 Mini (Lite)",
+              id: "Phi-3.5-mini-instruct-q4f32_1-MLC", // Compatible version
+              name: "Phi-3.5 Mini (Compatible)",
               size: "2.3GB",
-              description: "Fastest. Best for low-memory devices (4GB RAM).",
+              description: "Fast, smart, and works on most devices (no shader-f16 required).",
               family: "phi3"
        },
        {
-              id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", // ~4.6GB
-              name: "Llama 3.1 8B (Balanced)",
+              id: "Llama-3.1-8B-Instruct-q4f32_1-MLC", // Compatible version
+              name: "Llama 3.1 8B (Compatible)",
               size: "4.6GB",
-              description: "Better reasoning. Requires 8GB+ RAM.",
+              description: "Powerful 8B model. Balanced performance. Requires 8GB+ RAM.",
               family: "llama3"
        },
        {
-              id: "Hermes-2-Pro-Llama-3-8B-q4f16_1-MLC", // ~4.6GB
+              id: "Hermes-2-Pro-Llama-3-8B-q4f32_1-MLC", // Compatible version
               name: "Hermes 2 Pro (Coding)",
               size: "4.6GB",
-              description: "Specialized for coding tasks. Requires 8GB+ RAM.",
+              description: "Specialized for coding. Works on most devices.",
               family: "llama3"
        },
        {
-              id: "gemma-2b-it-q4f16_1-MLC",
-              name: "Gemma 2B",
+              id: "gemma-2b-it-q4f32_1-MLC",
+              name: "Gemma 2B (Compatible)",
               size: "1.4GB",
-              description: "Google's lightweight open model. Very fast.",
+              description: "Google's lightweight model. Very fast.",
               family: "gemma"
        },
        {
-              id: "RedPajama-INCITE-Chat-3B-v1-q4f16_1-MLC",
-              name: "RedPajama 3B",
-              size: "1.8GB",
-              description: "Open source community model. Low memory usage.",
-              family: "redpajama"
+              id: "Qwen2-7B-Instruct-q4f32_1-MLC",
+              name: "Qwen2 7B",
+              size: "4.0GB",
+              description: "Balanced performance and speed.",
+              family: "qwen2"
        }
 ];
 
@@ -59,16 +59,48 @@ class ModelService {
                      return; // Already loaded
               }
 
+              // Clean up existing engine if we are switching models or re-initializing
+              if (this.engine) {
+                     try {
+                            console.log("Unloading previous engine...");
+                            await this.engine.unload();
+                            console.log("Previous engine unloaded.");
+                     } catch (cleanupError) {
+                            console.warn("Error unloading previous engine:", cleanupError);
+                            // We continue even if unload fails, as the object might already be disposed
+                     } finally {
+                            this.engine = null;
+                            this.currentModelId = null;
+                     }
+              }
+
               try {
                      // Create a new engine instance
                      // We rely on the browser's Cache API via web-llm's internal handling
+                     console.log("Starting CreateMLCEngine for", modelId);
+
                      this.engine = await CreateMLCEngine(modelId, {
-                            initProgressCallback: onProgress,
+                            initProgressCallback: (report) => {
+                                   console.log("Progress:", report);
+                                   onProgress(report);
+                            },
                             logLevel: "INFO", // Change to DEBUG for more verbosity
                      });
+
+                     console.log("Engine created successfully");
                      this.currentModelId = modelId;
               } catch (error) {
                      console.error("Failed to initialize model:", error);
+                     // Propagate specific error messages
+                     if (error instanceof Error) {
+                            const errorMessage = error.message;
+                            if (errorMessage.includes("shader-f16")) {
+                                   throw new Error(
+                                          "This model requires 'shader-f16' which is not supported by your browser/model version. Please try the 'Compatible' versions listed."
+                                   );
+                            }
+                            throw new Error(`Engine Init Failed: ${errorMessage}`);
+                     }
                      throw error;
               }
        }

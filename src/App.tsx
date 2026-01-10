@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useModel } from './hooks/useModel';
 import { DownloadManager } from './components/Download/DownloadManager';
 import { ChatInterface } from './components/Chat/ChatInterface';
@@ -6,6 +7,7 @@ import { MainLayout } from './components/Layout/MainLayout';
 import { AppProvider, useAppContext } from './services/contextService';
 import type { Message } from './hooks/useModel';
 import { useChat } from './hooks/useChat';
+import { LandingPage } from './components/Landing/LandingPage';
 
 function AppContent() {
   const { modelStats, availableModels, loadModel, generateResponse, currentModel } = useModel();
@@ -105,6 +107,12 @@ function AppContent() {
 }
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true);
+
+  if (showLanding) {
+    return <LandingPage onStart={() => setShowLanding(false)} />;
+  }
+
   return (
     <AppProvider>
       <AppContent />
