@@ -59,24 +59,22 @@ class ModelService {
                      return; // Already loaded
               }
 
-              // Clean up existing engine if we are switching models or re-initializing
-              if (this.engine) {
+              // Only unload if we have a SUCCESSFULLY loaded engine and we're switching models
+              if (this.engine && this.currentModelId && this.currentModelId !== modelId) {
                      try {
-                            console.log("Unloading previous engine...");
+                            console.log("Switching models, unloading previous engine...");
                             await this.engine.unload();
-                            console.log("Previous engine unloaded.");
+                            console.log("Previous engine unloaded successfully.");
                      } catch (cleanupError) {
-                            console.warn("Error unloading previous engine:", cleanupError);
-                            // We continue even if unload fails, as the object might already be disposed
-                     } finally {
-                            this.engine = null;
-                            this.currentModelId = null;
+                            console.warn("Error unloading previous engine (may already be disposed):", cleanupError);
                      }
               }
 
+              // Clear references before starting new initialization
+              this.engine = null;
+              this.currentModelId = null;
+
               try {
-                     // Create a new engine instance
-                     // We rely on the browser's Cache API via web-llm's internal handling
                      console.log("Starting CreateMLCEngine for", modelId);
 
                      this.engine = await CreateMLCEngine(modelId, {
@@ -84,21 +82,40 @@ class ModelService {
                                    console.log("Progress:", report);
                                    onProgress(report);
                             },
-                            logLevel: "INFO", // Change to DEBUG for more verbosity
+                            logLevel: "INFO",
                      });
 
                      console.log("Engine created successfully");
                      this.currentModelId = modelId;
               } catch (error) {
+                     // Clear engine reference on ANY error - web-llm has already disposed it internally
+                     this.engine = null;
+                     this.currentModelId = null;
+
                      console.error("Failed to initialize model:", error);
-                     // Propagate specific error messages
+
                      if (error instanceof Error) {
                             const errorMessage = error.message;
+
+                            // Check for specific error types
                             if (errorMessage.includes("shader-f16")) {
                                    throw new Error(
-                                          "This model requires 'shader-f16' which is not supported by your browser/model version. Please try the 'Compatible' versions listed."
+                                          "This model requires 'shader-f16' which is not supported by your browser. Please try the 'Compatible' versions listed."
                                    );
                             }
+
+                            if (errorMessage.includes("Device was lost") || errorMessage.includes("DEVICE_HUNG")) {
+                                   throw new Error(
+                                          "GPU device lost (out of memory or GPU crash). Please try a smaller model or reload the page."
+                                   );
+                            }
+
+                            if (errorMessage.includes("Object has already been disposed")) {
+                                   throw new Error(
+                                          "GPU initialization failed. Please reload the page and try a smaller model."
+                                   );
+                            }
+
                             throw new Error(`Engine Init Failed: ${errorMessage}`);
                      }
                      throw error;

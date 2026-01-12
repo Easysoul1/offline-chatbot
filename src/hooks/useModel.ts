@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { modelService, AVAILABLE_MODELS, type ModelConfig } from '../services/modelService';
 import type { InitProgressReport } from '@mlc-ai/web-llm';
 
@@ -23,6 +23,7 @@ export function useModel() {
        });
 
        const [currentModel, setCurrentModel] = useState<ModelConfig | null>(null);
+       const isInitializingRef = useRef(false);
 
        // Check WebGPU support on mount
        useEffect(() => {
@@ -37,7 +38,14 @@ export function useModel() {
               const selectedModel = AVAILABLE_MODELS.find(m => m.id === modelId);
               if (!selectedModel) return;
 
+              // Prevent concurrent initialization attempts
+              if (isInitializingRef.current) {
+                     console.warn("Model initialization already in progress, ignoring duplicate call");
+                     return;
+              }
+
               setCurrentModel(selectedModel);
+              isInitializingRef.current = true;
               setModelStats(prev => ({
                      ...prev,
                      loading: true,
@@ -50,6 +58,7 @@ export function useModel() {
                             setModelStats(prev => ({ ...prev, progress: report }));
                      });
                      setModelStats(prev => ({ ...prev, loaded: true, loading: false }));
+                     isInitializingRef.current = false;
               } catch (err: unknown) {
                      const errorMessage = err instanceof Error ? err.message : "Failed to load model";
                      setModelStats(prev => ({
@@ -57,6 +66,7 @@ export function useModel() {
                             loading: false,
                             error: errorMessage
                      }));
+                     isInitializingRef.current = false;
               }
        }, []);
 
